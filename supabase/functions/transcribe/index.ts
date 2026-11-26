@@ -75,11 +75,14 @@ Deno.serve(async (req) => {
   }
 
   let file: File;
+  let prompt = "";
   try {
     const form = await req.formData();
     const f = form.get("file");
     if (!(f instanceof File)) throw new Error("sin archivo");
     file = f;
+    // Contexto: final del trozo anterior (Whisper admite ~224 tokens; recortamos por caracteres).
+    prompt = String(form.get("prompt") ?? "").slice(-600).trim();
   } catch {
     return json(req, 400, { error: "Falta el audio." });
   }
@@ -99,6 +102,7 @@ Deno.serve(async (req) => {
   fd.append("model", MODEL);
   fd.append("response_format", "verbose_json");
   fd.append("temperature", "0");
+  if (prompt) fd.append("prompt", prompt);
   const lang = new URL(req.url).searchParams.get("language");
   if (lang && /^[a-z]{2}$/.test(lang)) fd.append("language", lang);
 

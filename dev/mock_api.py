@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import threading
 
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 LIMIT = int(os.environ.get("MOCK_LIMIT_SECONDS", 3600))
@@ -30,7 +30,7 @@ def quota():
 
 
 @app.post("/transcribe")
-def transcribe(file: UploadFile, language: str | None = None):
+def transcribe(file: UploadFile, language: str | None = None, prompt: str = Form("")):
     global used
     import mlx_whisper
 
@@ -42,7 +42,8 @@ def transcribe(file: UploadFile, language: str | None = None):
             capture_output=True, text=True, check=True).stdout.strip())
         with lock:  # Whisper local: uno a la vez
             r = mlx_whisper.transcribe(tmp.name, path_or_hf_repo="mlx-community/whisper-large-v3-turbo",
-                                       condition_on_previous_text=False, language=language)
+                                       condition_on_previous_text=False, language=language,
+                                       initial_prompt=prompt[-600:] or None)
     used += int(duration) + 1
     return {
         "duration": duration,
