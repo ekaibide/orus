@@ -55,7 +55,6 @@ async function refreshQuota() {
   try {
     const q = await api("GET");
     remaining = q.remaining;
-    $("freeMin").textContent = mins(q.limit);
   } catch { remaining = null; }
   showQuota();
 }
@@ -69,9 +68,56 @@ if (!CONFIGURED) $("soon").hidden = false;
 else if (MOCK_API) render(null);
 else sb.auth.onAuthStateChange((_event, session) => render(session));
 
-$("google").onclick = () =>
-  sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
-$("logout").onclick = async () => { if (sb) await sb.auth.signOut(); };
+// Login sin contraseña: email → código de 6 dígitos (Supabase Auth OTP).
+function loginMsg(text, isError = false) {
+  $("loginMsg").textContent = text;
+  $("loginMsg").className = isError ? "err" : "";
+}
+function authError(e) {
+  const m = String(e?.message || e);
+  if (/rate|seconds|too many/i.test(m)) return "Demasiados intentos. Espera un minuto y vuelve a probar.";
+  if (/expired|invalid|token/i.test(m)) return "Código incorrecto o caducado.";
+  if (/email/i.test(m)) return "Revisa el email.";
+  return "No se pudo completar. Inténtalo de nuevo.";
+}
+async function busyForm(form, fn) {
+  const btn = form.querySelector("button[type=submit]");
+  btn.disabled = true;
+  try { await fn(); } finally { btn.disabled = false; }
+}
+$("emailForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  busyForm(ev.target, async () => {
+    const email = $("email").value.trim();
+    loginMsg("");
+    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    if (error) return loginMsg(authError(error), true);
+    $("sentTo").textContent = email;
+    $("emailForm").hidden = true;
+    $("codeForm").hidden = false;
+    $("code").value = "";
+    $("code").focus();
+    loginMsg("Revisa tu bandeja de entrada (y la de spam).");
+  });
+});
+$("codeForm").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  busyForm(ev.target, async () => {
+    const { error } = await sb.auth.verifyOtp({ email: $("sentTo").textContent, token: $("code").value.trim(), type: "email" });
+    if (error) return loginMsg(authError(error), true);
+    loginMsg(""); // onAuthStateChange muestra la app
+  });
+});
+$("code").addEventListener("input", (ev) => {
+  ev.target.value = ev.target.value.replace(/\D/g, "").slice(0, 6);
+  if (ev.target.value.length === 6) $("codeForm").requestSubmit();
+});
+$("back").onclick = () => { $("codeForm").hidden = true; $("emailForm").hidden = false; loginMsg(""); $("email").focus(); };
+$("logout").onclick = async () => {
+  if (sb) await sb.auth.signOut();
+  $("codeForm").hidden = true;
+  $("emailForm").hidden = false;
+};
 
 // ---------- subida ----------
 const drop = $("drop");

@@ -10,7 +10,7 @@ Navegador                                   Supabase                       Groq
 ffmpeg.wasm extrae el audio (el vídeo no
 se sube), detecta silencios y lo corta
 en trozos de 10 min (opus, ~2,4 MB)
-   │  login con Google (Supabase Auth)
+   │  login: email + código de 6 dígitos (Supabase Auth)
    ├─ muestra de 30 s con voz ─────────────▶ functions/transcribe ─────────▶ Whisper large-v3-turbo
    │                                         · valida sesión               (0,04 $/hora de audio)
    ├─ trozos con voz (3 en paralelo) ──────▶ · lee la duración real del Ogg
@@ -33,7 +33,7 @@ monta los párrafos y genera el .docx
 | `MONTHLY_FREE_SECONDS` | 3600 | Minutos gratis por cuenta y mes |
 | `DAILY_GLOBAL_SECONDS` | 108000 (30 h) | Tope de gasto total por día (≈1,2 $/día) |
 | `ALLOWED_ORIGINS` | — | Origen de la web (CORS), p. ej. `https://usuario.github.io` |
-| `GROQ_API_KEY` | — | **Secreto**: se configura con `supabase secrets set`, nunca en el repo |
+| `GROQ_API_KEY` | — | **Secreto**: `supabase secrets set GROQ_API_KEY="$(security find-generic-password -s groq-video-a-word -w)"`, nunca en el repo |
 
 ## Probar en local (sin cuentas)
 
@@ -52,7 +52,7 @@ Abrir `http://127.0.0.1:8030/?mock=http://127.0.0.1:8020`.
 1. `supabase link --project-ref <ref>` y `supabase db push`
 2. `supabase secrets set GROQ_API_KEY=… ALLOWED_ORIGINS=https://…`
 3. `supabase functions deploy transcribe`
-4. Supabase → Authentication → Providers → Google (Client ID/Secret de Google Cloud; callback `https://<ref>.supabase.co/auth/v1/callback`). En URL Configuration, añadir la URL de la web como Site URL / Redirect URL.
+4. Auth (código por email, remitente Gmail con contraseña de aplicación): `SMTP_USER=… SMTP_PASS=… supabase config push`. La configuración y la plantilla están en `supabase/config.toml` y `supabase/templates/codigo.html`.
 5. Rellenar `web/config.js` (URL y clave publishable) y publicar `web/` (GitHub Pages).
 
 ## Regenerar las librerías de `web/vendor/`

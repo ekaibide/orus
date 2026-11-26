@@ -22,7 +22,16 @@ h1{font-size:22px;margin:0 0 6px}
 #drop.busy{pointer-events:none;opacity:.5}
 .btn{display:inline-flex;align-items:center;gap:10px;background:var(--acc);color:#fff;border:0;text-decoration:none;padding:11px 18px;border-radius:8px;font:600 15px system-ui,sans-serif;cursor:pointer}
 .btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
-#login{margin-top:24px;text-align:center}
+#login{margin-top:24px}
+.row{display:flex;flex-direction:column;gap:10px}
+.row label{font-size:14px;color:var(--mute)}
+.row input{font:16px system-ui,sans-serif;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.row input:focus{outline:2px solid var(--acc);outline-offset:1px;border-color:transparent}
+#code{letter-spacing:.3em;font-variant-numeric:tabular-nums}
+.row .btn{justify-content:center}
+.btn:disabled{opacity:.6;cursor:default}
+.link{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font:inherit;font-size:14px;padding:0;align-self:center}
+#loginMsg{font-size:14px;margin:12px 0 0;min-height:20px}
 #state{margin-top:18px;font-size:15px;min-height:24px}
 .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px;display:none}
 .bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .25s}
@@ -40,8 +49,19 @@ h1{font-size:22px;margin:0 0 6px}
   <p id="soon" class="fine" hidden>Estamos terminando de preparar el servicio. Vuelve en unos días.</p>
 
   <div id="login" hidden>
-    <button class="btn" id="google">Entrar con Google</button>
-    <p class="fine">Gratis hasta <span id="freeMin">60</span> minutos de vídeo al mes.</p>
+    <form id="emailForm" class="row">
+      <label for="email">Tu email</label>
+      <input id="email" type="email" autocomplete="email" required placeholder="nombre@ejemplo.com">
+      <button class="btn" type="submit">Recibir código</button>
+    </form>
+    <form id="codeForm" class="row" hidden>
+      <label for="code">Código de 6 dígitos enviado a <strong id="sentTo"></strong></label>
+      <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="123456">
+      <button class="btn" type="submit">Entrar</button>
+      <button class="link" type="button" id="back">Usar otro email</button>
+    </form>
+    <p id="loginMsg" role="status" aria-live="polite"></p>
+    <p class="fine">Gratis hasta 60 minutos de vídeo al mes. Sin contraseñas.</p>
   </div>
 
   <section id="app" hidden>
