@@ -64,6 +64,15 @@ function render(session) {
   $("app").hidden = !logged;
   if (logged) refreshQuota();
 }
+// Vuelta de un enlace de email caducado o ya usado: avisar y limpiar la URL.
+const hashParams = new URLSearchParams(location.hash.slice(1));
+if (hashParams.get("error")) {
+  queueMicrotask(() => loginMsg(hashParams.get("error_code") === "otp_expired"
+    ? "El enlace ha caducado o ya se usó. Pide un código nuevo."
+    : "No se pudo iniciar sesión. Pide un código nuevo.", true));
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
 if (!CONFIGURED) $("soon").hidden = false;
 else if (MOCK_API) render(null);
 else sb.auth.onAuthStateChange((_event, session) => render(session));
@@ -90,7 +99,11 @@ $("emailForm").addEventListener("submit", (ev) => {
   busyForm(ev.target, async () => {
     const email = $("email").value.trim();
     loginMsg("");
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    // Sin emailRedirectTo, Supabase vuelve al origen (sin /orus/) y GitHub Pages da 404.
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname },
+    });
     if (error) return loginMsg(authError(error), true);
     $("sentTo").textContent = email;
     $("emailForm").hidden = true;
