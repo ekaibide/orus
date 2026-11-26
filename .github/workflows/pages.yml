@@ -24,6 +24,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Versionar los scripts (GitHub Pages cachea 10 min)
+        env:
+          V: ${{ github.sha }}
+        run: |
+          sed -i "s#\./app\.js\"#./app.js?v=${V:0:8}\"#" web/index.html
+          sed -i -E "s#\"\./(config\.js|vendor/libs\.js|vendor/ffmpeg/index\.js)\"#\"./\1?v=${V:0:8}\"#g" web/app.js
+          grep -o 'app.js?v=[a-f0-9]*' web/index.html
+          grep -o '[a-z/]*\.js?v=[a-f0-9]*' web/app.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
