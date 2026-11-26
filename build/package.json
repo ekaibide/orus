@@ -1,0 +1,2 @@
+{ "private": true, "description": "Solo para regenerar web/vendor/libs.js (ver README)",
+  "dependencies": { "@ffmpeg/ffmpeg": "0.12.10", "@ffmpeg/core": "0.12.6", "@supabase/supabase-js": "^2", "docx": "^9", "esbuild": "0.24" } }

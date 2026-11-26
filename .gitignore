@@ -1,0 +1,6 @@
+build/node_modules/
+.env
+.env.*
+supabase/.temp/
+supabase/.branches/
+.DS_Store

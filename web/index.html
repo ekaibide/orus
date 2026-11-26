@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vídeo a Word</title>
+<meta name="description" content="Sube un vídeo MKV y descarga la transcripción completa en Word.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232f5bea'/><path d='M9 10h14M9 16h14M9 22h9' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>">
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#1c1c1c;--mute:#6b6b6b;--line:#e3e1dc;--acc:#2f5bea;--err:#c62828}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1e;--ink:#eee;--mute:#9a9a9a;--line:#333;--acc:#7b9bff;--err:#ff6b6b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,sans-serif;display:grid;place-items:center;min-height:100vh;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:32px;width:100%;max-width:500px}
+h1{font-size:22px;margin:0 0 6px}
+.sub{margin:0;color:var(--mute);font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;font-size:13px;color:var(--mute);min-height:20px}
+.top button{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+#drop{display:block;margin-top:14px;border:2px dashed var(--line);border-radius:12px;padding:36px 16px;text-align:center;cursor:pointer;transition:.15s}
+#drop.over{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
+#drop strong{color:var(--acc)} #drop input{display:none}
+#drop.busy{pointer-events:none;opacity:.5}
+.btn{display:inline-flex;align-items:center;gap:10px;background:var(--acc);color:#fff;border:0;text-decoration:none;padding:11px 18px;border-radius:8px;font:600 15px system-ui,sans-serif;cursor:pointer}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+#login{margin-top:24px;text-align:center}
+#state{margin-top:18px;font-size:15px;min-height:24px}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px;display:none}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .25s}
+#out{margin-top:14px}
+.err{color:var(--err)}
+.fine{margin-top:22px;font-size:12px;color:var(--mute)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>Transcribe tu vídeo a Word</h1>
+  <p class="sub">Sube un vídeo (.mkv, .mp4, .mov…) y descarga la transcripción completa en un documento de Word.</p>
+
+  <p id="soon" class="fine" hidden>Estamos terminando de preparar el servicio. Vuelve en unos días.</p>
+
+  <div id="login" hidden>
+    <button class="btn" id="google">Entrar con Google</button>
+    <p class="fine">Gratis hasta <span id="freeMin">60</span> minutos de vídeo al mes.</p>
+  </div>
+
+  <section id="app" hidden>
+    <div class="top"><span id="quota"></span><button id="logout">Salir</button></div>
+    <label id="drop"><input id="f" type="file" accept=".mkv,.mp4,.mov,.webm,.avi,.mp3,.wav,.m4a,video/*,audio/*">
+      Arrastra el vídeo aquí o <strong>elige un archivo</strong></label>
+    <div id="state" role="status" aria-live="polite"></div>
+    <div class="bar" id="bar"><i id="fill"></i></div>
+    <div id="out"></div>
+  </section>
+
+  <p class="fine">El vídeo no sale de tu ordenador: el audio se extrae en el navegador y solo se envía el audio para transcribirlo. No guardamos ni el audio ni el texto.</p>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
