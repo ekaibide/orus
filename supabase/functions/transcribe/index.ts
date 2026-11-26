@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
   const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const { data: auth } = await admin.auth.getUser(jwt);
   const user = auth?.user;
-  if (!user || user.is_anonymous) return json(req, 401, { error: "Inicia sesión para continuar." });
+  // Modo prueba: vale la sesión anónima siempre que lleve el email que pidió la web.
+  const email = user?.email || (user?.user_metadata?.email as string | undefined);
+  if (!user || !email) return json(req, 401, { error: "Inicia sesión para continuar." });
 
   let q;
   try {

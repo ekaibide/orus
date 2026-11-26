@@ -54,13 +54,7 @@ h1{font-size:22px;margin:0 0 6px}
     <form id="emailForm" class="row">
       <label for="email">Tu email</label>
       <input id="email" type="email" autocomplete="email" required placeholder="nombre@ejemplo.com">
-      <button class="btn" type="submit">Recibir código</button>
-    </form>
-    <form id="codeForm" class="row" hidden>
-      <label for="code">Código de 6 dígitos enviado a <strong id="sentTo"></strong></label>
-      <input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="123456">
       <button class="btn" type="submit">Entrar</button>
-      <button class="link" type="button" id="back">Usar otro email</button>
     </form>
     <p id="loginMsg" role="status" aria-live="polite"></p>
     <p class="fine">Gratis hasta 60 minutos de vídeo al mes. Sin contraseñas.</p>

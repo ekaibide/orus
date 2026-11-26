@@ -94,43 +94,20 @@ async function busyForm(form, fn) {
   btn.disabled = true;
   try { await fn(); } finally { btn.disabled = false; }
 }
+// Modo prueba: se entra solo con el email, sin verificarlo (sesión anónima de Supabase
+// con el email guardado en el usuario). Para volver al código de 6 dígitos hace falta
+// un remitente SMTP; ver el historial de git ("Login con código de 6 dígitos…").
 $("emailForm").addEventListener("submit", (ev) => {
   ev.preventDefault();
   busyForm(ev.target, async () => {
-    const email = $("email").value.trim();
+    const email = $("email").value.trim().toLowerCase();
     loginMsg("");
-    // Sin emailRedirectTo, Supabase vuelve al origen (sin /orus/) y GitHub Pages da 404.
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname },
-    });
+    const { error } = await sb.auth.signInAnonymously({ options: { data: { email } } });
     if (error) return loginMsg(authError(error), true);
-    $("sentTo").textContent = email;
-    $("emailForm").hidden = true;
-    $("codeForm").hidden = false;
-    $("code").value = "";
-    $("code").focus();
-    loginMsg("Revisa tu bandeja de entrada (y la de spam).");
+    // onAuthStateChange muestra la app
   });
 });
-$("codeForm").addEventListener("submit", (ev) => {
-  ev.preventDefault();
-  busyForm(ev.target, async () => {
-    const { error } = await sb.auth.verifyOtp({ email: $("sentTo").textContent, token: $("code").value.trim(), type: "email" });
-    if (error) return loginMsg(authError(error), true);
-    loginMsg(""); // onAuthStateChange muestra la app
-  });
-});
-$("code").addEventListener("input", (ev) => {
-  ev.target.value = ev.target.value.replace(/\D/g, "").slice(0, 6);
-  if (ev.target.value.length === 6) $("codeForm").requestSubmit();
-});
-$("back").onclick = () => { $("codeForm").hidden = true; $("emailForm").hidden = false; loginMsg(""); $("email").focus(); };
-$("logout").onclick = async () => {
-  if (sb) await sb.auth.signOut();
-  $("codeForm").hidden = true;
-  $("emailForm").hidden = false;
-};
+$("logout").onclick = async () => { if (sb) await sb.auth.signOut(); };
 
 // ---------- subida ----------
 const drop = $("drop");
