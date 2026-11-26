@@ -1,0 +1,7 @@
+Tipografías autoalojadas (subconjunto latino, WOFF2), ambas bajo la SIL Open Font License 1.1
+(https://openfontlicense.org):
+
+- ibarra-real-nova-latin.woff2 — Ibarra Real Nova
+  Copyright 2007 The Ibarra Real Nova Project Authors (https://github.com/googlefonts/ibarrareal)
+- libre-franklin-latin.woff2 — Libre Franklin
+  Copyright 2020 The Libre Franklin Project Authors (https://github.com/googlefonts/Libre-Franklin)

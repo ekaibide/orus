@@ -4,72 +4,111 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Orus · Transcribe vídeo a Word</title>
-<meta name="description" content="Sube un vídeo MKV y descarga la transcripción completa en Word.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232f5bea'/><path d='M9 10h14M9 16h14M9 22h9' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>">
-<style>
-:root{--bg:#f6f5f2;--card:#fff;--ink:#1c1c1c;--mute:#6b6b6b;--line:#e3e1dc;--acc:#2f5bea;--err:#c62828}
-@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1e;--ink:#eee;--mute:#9a9a9a;--line:#333;--acc:#7b9bff;--err:#ff6b6b}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,sans-serif;display:grid;place-items:center;min-height:100vh;padding:16px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:32px;width:100%;max-width:500px}
-.brand{margin:0 0 10px;font:700 13px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
-h1{font-size:22px;margin:0 0 6px}
-.sub{margin:0;color:var(--mute);font-size:14px}
-.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;font-size:13px;color:var(--mute);min-height:20px}
-.top button{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
-#drop{display:block;margin-top:14px;border:2px dashed var(--line);border-radius:12px;padding:36px 16px;text-align:center;cursor:pointer;transition:.15s}
-#drop.over{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
-#drop strong{color:var(--acc)} #drop input{display:none}
-#drop.busy{pointer-events:none;opacity:.5}
-.btn{display:inline-flex;align-items:center;gap:10px;background:var(--acc);color:#fff;border:0;text-decoration:none;padding:11px 18px;border-radius:8px;font:600 15px system-ui,sans-serif;cursor:pointer}
-.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
-#login{margin-top:24px}
-.row{display:flex;flex-direction:column;gap:10px}
-.row label{font-size:14px;color:var(--mute)}
-.row input{font:16px system-ui,sans-serif;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
-.row input:focus{outline:2px solid var(--acc);outline-offset:1px;border-color:transparent}
-#code{letter-spacing:.3em;font-variant-numeric:tabular-nums}
-.row .btn{justify-content:center}
-.btn:disabled{opacity:.6;cursor:default}
-.link{background:none;border:0;color:var(--mute);text-decoration:underline;cursor:pointer;font:inherit;font-size:14px;padding:0;align-self:center}
-#loginMsg{font-size:14px;margin:12px 0 0;min-height:20px}
-#state{margin-top:18px;font-size:15px;min-height:24px}
-.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px;display:none}
-.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .25s}
-#out{margin-top:14px}
-.err{color:var(--err)}
-.fine{margin-top:22px;font-size:12px;color:var(--mute)}
-[hidden]{display:none!important}
-</style>
+<meta name="description" content="Sube la grabación de una vista, una declaración o una reunión y descarga la transcripción completa en Word, con el minuto de cada párrafo.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101312" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="./favicon.png" sizes="32x32" type="image/png">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="preload" href="./fonts/ibarra-real-nova-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/libre-franklin-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-<main class="card">
-  <p class="brand">Orus</p>
-  <h1>Transcribe tu vídeo a Word</h1>
-  <p class="sub">Sube un vídeo (.mkv, .mp4, .mov…) y descarga la transcripción completa en un documento de Word.</p>
+<!-- Logo de Orus: corchetes de transcripción + punto de grabación; «Orus» en Ibarra Real Nova, convertido a trazados. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="orus-logo" viewBox="4.5 3 89.6 26">
+    <path d="M11.5 4.5H6V27.5H11.5M20.5 4.5H26V27.5H20.5" fill="none" stroke="currentColor" stroke-width="3"/>
+    <circle class="logo-dot" cx="16" cy="16" r="4.6"/>
+    <path fill="currentColor" d="M49.02 25.1Q46.99 25.1 45.29 24.4Q43.59 23.71 42.34 22.49Q41.08 21.27 40.39 19.66Q39.7 18.05 39.7 16.22Q39.7 14.21 40.39 12.53Q41.08 10.85 42.34 9.59Q43.59 8.32 45.3 7.63Q47 6.94 49.02 6.94Q51.06 6.94 52.78 7.63Q54.51 8.32 55.76 9.56Q57.02 10.8 57.71 12.41Q58.4 14.03 58.4 15.88Q58.4 17.85 57.71 19.53Q57.02 21.21 55.76 22.46Q54.5 23.71 52.78 24.4Q51.07 25.1 49.02 25.1ZM49.02 24.27Q50.81 24.27 52.14 23.21Q53.46 22.15 54.21 20.26Q54.96 18.37 54.96 15.9Q54.96 13.57 54.21 11.73Q53.46 9.9 52.14 8.85Q50.81 7.79 49.03 7.79Q47.29 7.79 45.96 8.85Q44.64 9.9 43.89 11.8Q43.15 13.7 43.15 16.22Q43.15 17.94 43.57 19.41Q44 20.88 44.78 21.97Q45.57 23.06 46.65 23.67Q47.73 24.27 49.02 24.27ZM60.33 24.8V24.38L61.27 24.07Q61.67 23.94 61.82 23.72Q61.97 23.51 61.97 23.11V15.77Q61.97 15.23 61.81 15.04Q61.64 14.84 61.29 14.75L60.34 14.5V14.11Q61.19 13.97 61.86 13.83Q62.53 13.7 63.15 13.52Q63.76 13.33 64.43 13.06L64.68 13.25Q64.52 13.55 64.42 14.08Q64.33 14.6 64.33 15.17V15.43L64.51 15.93V23.22Q64.51 23.54 64.69 23.74Q64.87 23.94 65.28 24.07L66.36 24.38V24.8ZM64.51 17.79 64.05 15.34 67.13 13.49Q67.45 13.3 67.69 13.24Q67.93 13.17 68.15 13.17Q68.73 13.17 69.19 13.63Q69.66 14.08 69.66 14.81Q69.66 15.39 69.22 15.86Q68.78 16.33 68.04 16.33Q67.59 16.33 67.29 16.12Q66.98 15.92 66.75 15.69Q66.59 15.5 66.4 15.33Q66.22 15.16 65.99 15.16Q65.78 15.16 65.43 15.36Q65.08 15.56 64.79 16.13Q64.51 16.7 64.51 17.79ZM75.61 25Q73.88 25 72.87 24.11Q71.87 23.22 71.87 21.36V15.31Q71.87 14.77 71.7 14.58Q71.54 14.38 71.2 14.28L70.24 13.98V13.59Q71.13 13.54 71.82 13.48Q72.51 13.42 73.14 13.31Q73.78 13.2 74.5 13.06L74.75 13.25Q74.59 13.55 74.5 14.08Q74.41 14.6 74.41 15.17V20.65Q74.41 21.84 75.02 22.48Q75.64 23.13 76.76 23.13Q77.86 23.13 78.5 22.39Q79.15 21.66 79.15 20.55L79.66 23.24H79.18Q78.45 23.54 77.58 24Q76.71 24.45 76.02 24.87Q75.79 25 75.61 25ZM79.84 25.01 79.6 24.89 79.34 22.99 79.15 22.25V15.31Q79.15 14.77 78.98 14.58Q78.81 14.38 78.47 14.28L77.52 13.98V13.59Q78.41 13.54 79.1 13.48Q79.78 13.42 80.42 13.31Q81.05 13.2 81.78 13.06L82.03 13.25Q81.87 13.55 81.77 14.08Q81.68 14.6 81.68 15.17V22.53Q81.68 23.35 82.17 23.69Q82.67 24.02 83.72 24V24.61Q82.71 24.63 81.79 24.76Q80.87 24.89 79.84 25.01ZM89.53 25.01Q88.31 25.01 87.25 24.64Q86.18 24.26 85.61 23.93Q85.66 23.17 85.66 22.29Q85.67 21.41 85.49 20.59H86.37Q86.53 21.63 86.96 22.46Q87.4 23.3 88.11 23.79Q88.82 24.28 89.77 24.28Q90.55 24.28 91.07 23.79Q91.6 23.3 91.6 22.51Q91.6 21.87 91.37 21.44Q91.14 21.02 90.53 20.67Q89.92 20.31 88.77 19.87Q87.27 19.29 86.55 18.51Q85.82 17.72 85.82 16.36Q85.82 15.52 86.32 14.79Q86.83 14.07 87.74 13.62Q88.64 13.17 89.85 13.17Q90.67 13.17 91.19 13.32Q91.71 13.48 92.28 13.73H92.93Q92.85 14.67 92.9 15.36Q92.94 16.05 93.1 16.9H92.4Q92.06 15.44 91.36 14.67Q90.66 13.89 89.62 13.89Q88.85 13.89 88.37 14.33Q87.89 14.77 87.89 15.47Q87.89 16.1 88.13 16.49Q88.36 16.89 88.94 17.2Q89.52 17.5 90.56 17.87Q92.1 18.43 92.9 19.21Q93.7 19.99 93.7 21.49Q93.7 22.36 93.25 23.17Q92.8 23.98 91.87 24.49Q90.95 25.01 89.53 25.01Z"/>
+  </symbol>
+</svg>
 
-  <p id="soon" class="fine" hidden>Estamos terminando de preparar el servicio. Vuelve en unos días.</p>
+<header class="mast">
+  <a class="brand" href="./" aria-label="Orus, inicio"><svg class="logo" aria-hidden="true"><use href="#orus-logo"/></svg></a>
+</header>
 
-  <div id="login" hidden>
-    <form id="emailForm" class="row">
-      <label for="email">Tu email</label>
-      <input id="email" type="email" autocomplete="email" required placeholder="nombre@ejemplo.com">
-      <button class="btn" type="submit">Entrar</button>
-    </form>
-    <p id="loginMsg" role="status" aria-live="polite"></p>
-    <p class="fine">Gratis hasta 60 minutos de vídeo al mes. Sin contraseñas.</p>
+<main class="page">
+  <div class="lead">
+    <h1>La grabación, por escrito.</h1>
+    <p class="intro">Sube el vídeo de una vista, una declaración o una reunión y descarga la transcripción completa en Word, con el minuto de cada párrafo.</p>
+
+    <p id="soon" class="notice" hidden>Estamos terminando de preparar el servicio. Vuelve en unos días.</p>
+
+    <div id="login" hidden>
+      <form id="emailForm" class="form">
+        <label for="email">Tu email</label>
+        <div class="field-row">
+          <input id="email" type="email" autocomplete="email" required placeholder="nombre@despacho.es" aria-describedby="loginHint">
+          <button class="btn" type="submit">Entrar</button>
+        </div>
+      </form>
+      <p id="loginMsg" role="status" aria-live="polite"></p>
+      <p id="loginHint" class="hint">Gratis hasta 60 minutos de vídeo al mes. Sin contraseñas.</p>
+    </div>
+
+    <section id="app" data-view="upload" aria-label="Transcribir un vídeo" hidden>
+      <div class="top"><span id="quota"></span><button id="logout" class="link" type="button">Salir</button></div>
+
+      <p id="state" role="status" aria-live="polite"></p>
+      <p id="fname" class="fname"></p>
+
+      <label id="drop" class="drop">
+        <input id="f" class="sr-only" type="file" accept=".mkv,.mp4,.mov,.webm,.avi,.mp3,.wav,.m4a,video/*,audio/*">
+        <span class="drop-title"><span class="if-pointer">Arrastra aquí el vídeo</span><span class="if-touch">Elige el vídeo</span></span>
+        <span class="drop-or if-pointer">o <span class="drop-pick">elige un archivo</span></span>
+        <span class="drop-or if-touch"><span class="drop-pick">Abrir mis archivos</span></span>
+        <span class="drop-formats">MKV, MP4, MOV, WEBM, AVI, MP3, WAV o M4A</span>
+      </label>
+
+      <div class="work">
+        <ol id="steps" class="steps" role="list">
+          <li data-step="audio" data-state="todo"><span class="mark" aria-hidden="true"></span><span>Extraer el audio</span><span class="detail"></span></li>
+          <li data-step="idioma" data-state="todo"><span class="mark" aria-hidden="true"></span><span>Detectar el idioma</span><span class="detail"></span></li>
+          <li data-step="texto" data-state="todo"><span class="mark" aria-hidden="true"></span><span>Transcribir</span><span class="detail"></span></li>
+          <li data-step="word" data-state="todo"><span class="mark" aria-hidden="true"></span><span>Generar el Word</span><span class="detail"></span></li>
+        </ol>
+        <div class="bar" id="bar" role="progressbar" aria-label="Progreso de la transcripción" aria-valuemin="0" aria-valuemax="100" hidden><i id="fill"></i></div>
+        <p class="hint">No cierres esta pestaña hasta que termine.</p>
+      </div>
+
+      <div id="out" class="done">
+        <div class="actions">
+          <a id="dl" class="btn" href="#">Descargar Word</a>
+          <button id="again" class="btn ghost" type="button">Transcribir otro vídeo</button>
+        </div>
+        <p class="hint">La descarga empieza sola. Es una transcripción automática: revísala frente al audio antes de usarla en un procedimiento.</p>
+      </div>
+    </section>
+
+    <p class="privacy">El vídeo no sale de tu ordenador: el audio se extrae en el navegador y solo se envía el audio para transcribirlo. No guardamos ni el audio ni el texto.</p>
   </div>
 
-  <section id="app" hidden>
-    <div class="top"><span id="quota"></span><button id="logout">Salir</button></div>
-    <label id="drop"><input id="f" type="file" accept=".mkv,.mp4,.mov,.webm,.avi,.mp3,.wav,.m4a,video/*,audio/*">
-      Arrastra el vídeo aquí o <strong>elige un archivo</strong></label>
-    <div id="state" role="status" aria-live="polite"></div>
-    <div class="bar" id="bar"><i id="fill"></i></div>
-    <div id="out"></div>
-  </section>
-
-  <p class="fine">El vídeo no sale de tu ordenador: el audio se extrae en el navegador y solo se envía el audio para transcribirlo. No guardamos ni el audio ni el texto.</p>
+  <figure class="specimen">
+    <figcaption>Ejemplo del Word que descargas</figcaption>
+    <div class="folio" role="img" aria-label="Primera página de una transcripción de ejemplo: cabecera con el logo de Orus, título, datos del archivo y párrafos con su marca de tiempo al margen.">
+      <div class="folio-head"><svg class="logo"><use href="#orus-logo"/></svg><span>Vista_2026-03-12_sala-2</span></div>
+      <p class="folio-title">Transcripción</p>
+      <p class="folio-sub">Vista_2026-03-12_sala-2</p>
+      <dl class="folio-meta">
+        <dt>Archivo</dt><dd>Vista_2026-03-12_sala-2.mkv</dd>
+        <dt>Duración</dt><dd>00:47:12</dd>
+        <dt>Idioma</dt><dd>español</dd>
+        <dt>Fecha de transcripción</dt><dd>14 de marzo de 2026</dd>
+      </dl>
+      <div class="folio-body">
+        <p><time>00:00:04</time><span>Buenos días. Se abre la sesión. Tiene la palabra la parte actora para la práctica de la prueba testifical admitida.</span></p>
+        <p><time>00:00:21</time><span>Con la venia, señoría. Interesamos que se llame a la testigo propuesta en nuestro escrito de proposición de prueba.</span></p>
+        <p><time>00:01:07</time><span>¿Jura o promete decir verdad? Sí, lo prometo. Puede sentarse. Responda primero a las preguntas de la letrada de la parte actora.</span></p>
+        <p><time>00:01:38</time><span>Usted trabajó en el departamento de administración entre 2019 y 2023, ¿es correcto? Sí. Entré en marzo de 2019 y estuve allí hasta que cerraron la oficina.</span></p>
+        <p><time>00:02:15</time><span>¿Recuerda quién firmaba los albaranes de entrega durante ese periodo? Normalmente los firmaba el encargado de almacén. Si él no estaba, los firmaba yo misma.</span></p>
+        <p><time>00:03:02</time><span>¿Y conservaba copia de esos albaranes? Sí, se archivaba una copia en papel y otra se escaneaba cada viernes. Las dos quedaban a disposición de contabilidad.</span></p>
+        <p><time>00:03:44</time><span>No hay más preguntas, señoría. Tiene la palabra la defensa de la parte demandada.</span></p>
+        <p><time>00:03:58</time><span>Gracias. ¿Puede precisar en qué fecha dejó de escanearse esa documentación y quién dio la instrucción?</span></p>
+      </div>
+    </div>
+  </figure>
 </main>
 <script type="module" src="./app.js"></script>
 </body>

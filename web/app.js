@@ -1,4 +1,5 @@
-import { createClient, Document, Packer, Paragraph, TextRun, HeadingLevel } from "./vendor/libs.js";
+import { createClient, Document, Packer, Paragraph, TextRun, HeadingLevel, Header, Footer, ImageRun, PageNumber, Tab,
+  AlignmentType, TabStopType, BorderStyle, Table, TableRow, TableCell, WidthType, TableLayoutType } from "./vendor/libs.js";
 import { FFmpeg } from "./vendor/ffmpeg/index.js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, MOCK_API } from "./config.js";
 
@@ -21,15 +22,59 @@ const fmt = (s) => {
   return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((n) => String(n).padStart(2, "0")).join(":");
 };
 const mins = (s) => Math.max(0, Math.floor(s / 60));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---------- interfaz ----------
+// #app[data-view] decide qué se ve: "upload" (subida y errores), "working" (fases) o "done" (descarga).
+const STEPS = ["audio", "idioma", "texto", "word"];
+let downloadUrl = null;
+
+function view(name) {
+  $("app").dataset.view = name;
+}
+// #state es la única región aria-live del flujo: solo se reescribe cuando cambia el texto,
+// así el lector de pantalla anuncia cada fase una vez y no cada porcentaje.
 function setState(text, isError = false) {
-  $("state").textContent = text;
-  $("state").className = isError ? "err" : "";
+  const el = $("state");
+  el.className = isError ? "err" : "";
+  el.setAttribute("role", isError ? "alert" : "status");
+  if (el.textContent !== text) el.textContent = text;
+}
+// Marca la fase en curso (las anteriores quedan hechas) y su detalle: porcentaje o «n de N».
+function step(id, text, detail = "") {
+  const at = STEPS.indexOf(id);
+  for (const li of $("steps").children) {
+    const i = STEPS.indexOf(li.dataset.step);
+    li.dataset.state = i < at ? "done" : i === at ? "active" : "todo";
+    if (i === at) li.setAttribute("aria-current", "step");
+    else li.removeAttribute("aria-current");
+    li.querySelector(".detail").textContent = i === at ? detail : "";
+  }
+  setState(text);
 }
 function progress(frac) {
-  $("bar").style.display = frac == null ? "none" : "block";
-  if (frac != null) $("fill").style.width = `${Math.round(Math.min(1, frac) * 100)}%`;
+  const bar = $("bar");
+  bar.hidden = frac == null;
+  if (frac == null) return bar.removeAttribute("aria-valuenow");
+  const pct = Math.round(Math.min(1, frac) * 100);
+  $("fill").style.width = `${pct}%`;
+  bar.setAttribute("aria-valuenow", pct);
 }
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function showWorking(file) {
+  if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+  downloadUrl = null;
+  $("fname").textContent = file.name;
+  $("app").setAttribute("aria-busy", "true");
+  view("working");
+}
+function showError(e) {
+  const m = e?.message || String(e);
+  progress(null);
+  view("upload");
+  setState(/failed to fetch|load failed|networkerror/i.test(m)
+    ? "No hay conexión con el servicio. Comprueba la red y vuelve a intentarlo."
+    : m, true);
+}
 
 async function token() {
   if (MOCK_API) return "mock";
@@ -118,13 +163,14 @@ const drop = $("drop");
 ["dragleave", "drop"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", (ev) => ev.dataTransfer.files[0] && run(ev.dataTransfer.files[0]));
 $("f").addEventListener("change", (ev) => { const f = ev.target.files[0]; ev.target.value = ""; if (f) run(f); });
+$("again").addEventListener("click", () => { setState(""); view("upload"); $("f").focus(); });
 window.addEventListener("beforeunload", (ev) => { if (busy) ev.preventDefault(); });
 
 async function run(file) {
   if (busy) return;
   busy = true;
   drop.classList.add("busy");
-  $("out").innerHTML = "";
+  showWorking(file);
   try {
     const audio = await extractAudio(file);
     const language = await detectLanguage(audio);
@@ -132,18 +178,18 @@ async function run(file) {
     const blob = await buildDocx(file, audio, results, language);
     offerDownload(file, blob);
   } catch (e) {
-    progress(null);
-    setState(e.message || String(e), true);
+    showError(e);
   } finally {
     busy = false;
     drop.classList.remove("busy");
+    $("app").removeAttribute("aria-busy");
     showQuota();
   }
 }
 
 // ---------- 1. audio en el navegador (el vídeo nunca se sube) ----------
 async function extractAudio(file) {
-  setState("Preparando…");
+  step("audio", "Preparando…");
   progress(0);
   const ff = new FFmpeg();
   let duration = 0, lastTime = 0, hasAudio = false, phase = "probe";
@@ -161,7 +207,7 @@ async function extractAudio(file) {
     if (t && phase === "extract" && duration) {
       const frac = lastTime / duration;
       progress(frac * 0.3);
-      setState(`Extrayendo audio… ${Math.min(100, Math.round(frac * 100))}%`);
+      step("audio", "Extrayendo audio…", `${Math.min(100, Math.round(frac * 100))} %`);
     }
   });
   try {
@@ -171,7 +217,7 @@ async function extractAudio(file) {
     await ff.mount("WORKERFS", { files: [file] }, "/in");
     const src = "/in/" + file.name;
 
-    setState("Leyendo el vídeo…");
+    step("audio", "Leyendo el vídeo…");
     await ff.exec(["-hide_banner", "-i", src]); // falla a propósito: solo queremos la cabecera
     if (!hasAudio) throw new Error("Este archivo no tiene pista de audio.");
     if (remaining != null && duration > remaining + 30) {
@@ -180,7 +226,7 @@ async function extractAudio(file) {
 
     // Pasada 1: todo el audio (mono 16 kHz, opus) + todas las pausas de ≥0,4 s.
     phase = "extract";
-    setState("Extrayendo audio… 0%");
+    step("audio", "Extrayendo audio…", "0 %");
     const rc = await ff.exec([
       "-i", src, "-vn", "-map", "0:a:0", "-af", "silencedetect=noise=-40dB:d=0.4",
       "-ac", "1", "-ar", "16000", "-c:a", "libopus", "-b:a", "32k", "full.ogg",
@@ -193,7 +239,7 @@ async function extractAudio(file) {
     // Pasada 2: cortar (sin recodificar) en las pausas más cercanas a cada CHUNK_SEC.
     // Trozos largos hacen que Whisper pierda la puntuación y se salte turnos cortos.
     phase = "split";
-    setState("Preparando el audio…");
+    step("audio", "Preparando el audio…");
     const cuts = chooseCuts(silences, duration || lastTime);
     const rc2 = await ff.exec([
       "-i", "full.ogg", "-c", "copy", "-f", "segment",
@@ -292,7 +338,7 @@ const toCode = (l) => {
 
 async function detectLanguage(audio) {
   if (!audio.probe) return null;
-  setState("Detectando idioma…");
+  step("idioma", "Detectando idioma…");
   const r = await transcribeOne(audio.probe, "probe", null);
   return toCode(r.language);
 }
@@ -322,7 +368,7 @@ async function transcribeAll(audio, language) {
   let prompt = "";
   for (let n = 0; n < todo.length; n++) {
     progress(0.3 + 0.7 * (n / todo.length));
-    setState(todo.length > 1 ? `Transcribiendo… ${n}/${todo.length}` : "Transcribiendo…");
+    step("texto", "Transcribiendo…", todo.length > 1 ? `parte ${n + 1} de ${todo.length}` : "");
     const i = todo[n];
     results[i] = await transcribeOne(audio.chunks[i].bytes, `chunk${i}`, language, prompt);
     const words = results[i].segments.map((s) => s.text.trim()).join(" ").split(/\s+/).filter(Boolean);
@@ -358,40 +404,131 @@ function paragraphs(audio, results) {
   return paras.map((p) => ({ start: p.start, text: p.parts.join(" ") }));
 }
 
+// Formato de escrito procesal: A4, márgenes de 2,5 cm, Times New Roman 12 a interlineado 1,5 y
+// páginas numeradas. Medidas en twips (1 cm = 567); tamaños de letra en medios puntos.
+const PAGE_W = 11906, PAGE_H = 16838, MARGIN = 1417;
+const TEXT_W = PAGE_W - 2 * MARGIN;
+const TIME_COL = 992; // 1,75 cm: columna de la marca de tiempo
+const SERIF = "Times New Roman", SANS = "Arial", GREY = "5F6661";
+const RULE = { style: BorderStyle.SINGLE, size: 4, color: "C4C9C3" };
+const NO_RULE = { style: BorderStyle.NONE, size: 0, color: "auto" };
+const NOTICE = "Transcripción automática; revisar frente al audio antes de usarla en un procedimiento.";
+const LOGO_PX = { width: 83, height: 24 }; // 2,2 × 0,64 cm; el PNG es 717 × 208
+
+const small = (text, extra = {}) => new TextRun({ text, font: SANS, size: 16, color: GREY, ...extra });
+const clip = (s, n) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
+
+async function logoPng() {
+  try {
+    const r = await fetch(new URL("./assets/orus-logo-word.png", import.meta.url));
+    return r.ok ? new Uint8Array(await r.arrayBuffer()) : null;
+  } catch { return null; } // sin logo, la cabecera lleva el nombre en texto
+}
+
 async function buildDocx(file, audio, results, language) {
-  setState("Generando el Word…");
+  step("word", "Generando el Word…");
   const paras = paragraphs(audio, results);
   const stem = file.name.replace(/\.[^.]+$/, "");
   const lang = language ?? toCode(results.find((r) => r?.language)?.language);
-  const meta = [new TextRun({ text: `Archivo: ${file.name}`, italics: true }),
-    new TextRun({ text: `Duración: ${fmt(audio.total)}`, italics: true, break: 1 })];
-  if (lang) meta.push(new TextRun({ text: `Idioma: ${LANG_NAMES[lang] ?? lang}`, italics: true, break: 1 }));
+  const logo = await logoPng();
 
+  // Cabecera y pie de todas las páginas.
+  const header = new Header({ children: [new Paragraph({
+    spacing: { line: 240, after: 0 },
+    tabStops: [{ type: TabStopType.RIGHT, position: TEXT_W }],
+    border: { bottom: { ...RULE, space: 6 } },
+    children: [
+      logo
+        ? new ImageRun({ type: "png", data: logo, transformation: LOGO_PX,
+            altText: { name: "Orus", title: "Orus", description: "Logo de Orus" } })
+        : new TextRun({ text: "Orus", bold: true, size: 26 }),
+      new TextRun({ font: SANS, size: 16, color: GREY, children: [new Tab(), clip(stem, 70)] }),
+    ],
+  })] });
+  const footer = new Footer({ children: [new Paragraph({
+    spacing: { line: 240, after: 0 },
+    tabStops: [{ type: TabStopType.RIGHT, position: TEXT_W }],
+    border: { top: { ...RULE, space: 6 } },
+    children: [
+      small(NOTICE, { size: 15, italics: true }),
+      new TextRun({ font: SANS, size: 16, color: GREY,
+        children: [new Tab(), "Página ", PageNumber.CURRENT, " de ", PageNumber.TOTAL_PAGES] }),
+    ],
+  })] });
+
+  // Título y bloque de metadatos (tabla sin bordes verticales, con filete arriba y abajo).
+  const meta = [["Archivo", file.name], ["Duración", fmt(audio.total)]];
+  if (lang) meta.push(["Idioma", LANG_NAMES[lang] ?? lang]);
+  meta.push(["Fecha de transcripción",
+    new Date().toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })]);
+  const LABEL_W = 2600;
+  const metaCell = (width, run) => new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    margins: { top: 60, bottom: 60, left: 0, right: 120 },
+    children: [new Paragraph({ spacing: { line: 276, after: 0 }, children: [run] })],
+  });
+  const metaTable = new Table({
+    width: { size: TEXT_W, type: WidthType.DXA },
+    columnWidths: [LABEL_W, TEXT_W - LABEL_W],
+    layout: TableLayoutType.FIXED,
+    borders: { top: RULE, bottom: RULE, left: NO_RULE, right: NO_RULE, insideHorizontal: NO_RULE, insideVertical: NO_RULE },
+    rows: meta.map(([label, value]) => new TableRow({ cantSplit: true, children: [
+      metaCell(LABEL_W, small(label, { size: 17 })),
+      metaCell(TEXT_W - LABEL_W, new TextRun({ text: value, size: 22 })),
+    ] })),
+  });
+
+  // Cuerpo: un párrafo por intervención, con su marca de tiempo discreta en el margen.
   const body = paras.length
-    ? paras.map((p) => new Paragraph({ spacing: { after: 160 }, children: [
-        new TextRun({ text: `[${fmt(p.start)}] `, bold: true, color: "666666" }),
-        new TextRun(p.text)] }))
-    : [new Paragraph("(No se detectó voz en el archivo.)")];
+    ? paras.map((p, i) => new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { left: TIME_COL, hanging: TIME_COL },
+        tabStops: [{ type: TabStopType.LEFT, position: TIME_COL }],
+        spacing: { before: i ? 0 : 400, after: 160, line: 360 },
+        children: [
+          new TextRun({ text: fmt(p.start), font: SANS, size: 15, color: GREY }),
+          new TextRun({ children: [new Tab()] }),
+          new TextRun(p.text),
+        ] }))
+    : [new Paragraph({ spacing: { before: 400 },
+        children: [new TextRun({ text: "No se detectó voz en el archivo.", italics: true })] })];
 
   const doc = new Document({
-    styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
-    sections: [{ children: [
-      new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(`Transcripción — ${stem}`)] }),
-      new Paragraph({ spacing: { after: 240 }, children: meta }),
-      ...body,
-    ] }],
+    creator: "Orus",
+    title: `Transcripción de ${stem}`,
+    description: NOTICE,
+    styles: { default: {
+      document: { run: { font: SERIF, size: 24 } },
+      title: { run: { font: SERIF, size: 52 }, paragraph: { spacing: { before: 240, after: 60, line: 240 } } },
+    } },
+    sections: [{
+      properties: { page: {
+        size: { width: PAGE_W, height: PAGE_H },
+        margin: { top: MARGIN, right: MARGIN, bottom: MARGIN, left: MARGIN, header: 567, footer: 680 },
+      } },
+      headers: { default: header },
+      footers: { default: footer },
+      children: [
+        new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun("Transcripción")] }),
+        new Paragraph({ spacing: { after: 320, line: 276 }, children: [new TextRun({ text: stem, size: 26, color: GREY })] }),
+        metaTable,
+        ...body,
+      ],
+    }],
   });
   return Packer.toBlob(doc);
 }
 
 function offerDownload(file, blob) {
   progress(null);
-  setState("Listo ✓");
-  const a = document.createElement("a");
-  a.className = "btn";
-  a.href = URL.createObjectURL(blob);
-  a.download = file.name.replace(/\.[^.]+$/, "") + "_transcripcion.docx";
-  a.textContent = "Descargar Word";
-  $("out").replaceChildren(a);
+  const name = file.name.replace(/\.[^.]+$/, "") + "_transcripcion.docx";
+  downloadUrl = URL.createObjectURL(blob);
+  const a = $("dl");
+  a.href = downloadUrl;
+  a.download = name;
+  $("fname").textContent = name;
+  view("done");
+  setState("Transcripción lista");
   a.click();
+  a.focus();
 }
