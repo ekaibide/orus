@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vídeo a Word</title>
+<title>Orus · Transcribe vídeo a Word</title>
 <meta name="description" content="Sube un vídeo MKV y descarga la transcripción completa en Word.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232f5bea'/><path d='M9 10h14M9 16h14M9 22h9' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>">
 <style>
@@ -12,6 +12,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,sans-serif;display:grid;place-items:center;min-height:100vh;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:32px;width:100%;max-width:500px}
+.brand{margin:0 0 10px;font:700 13px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
 h1{font-size:22px;margin:0 0 6px}
 .sub{margin:0;color:var(--mute);font-size:14px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;font-size:13px;color:var(--mute);min-height:20px}
@@ -43,6 +44,7 @@ h1{font-size:22px;margin:0 0 6px}
 </head>
 <body>
 <main class="card">
+  <p class="brand">Orus</p>
   <h1>Transcribe tu vídeo a Word</h1>
   <p class="sub">Sube un vídeo (.mkv, .mp4, .mov…) y descarga la transcripción completa en un documento de Word.</p>
 

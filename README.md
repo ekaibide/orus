@@ -1,4 +1,4 @@
-# Vídeo a Word
+# Orus
 
 Sube un vídeo (.mkv, .mp4, .mov…) y descarga la transcripción completa en .docx. Gratis hasta 60 min al mes por cuenta.
 
